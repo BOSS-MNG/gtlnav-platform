@@ -1,0 +1,75 @@
+# GTLNAV reverse proxy — example Caddyfile (Phase 6B).
+#
+# Phase 6A: static deployments served from disk.
+# Phase 6B: docker runtimes reachable through 127.0.0.1:<port>.
+#
+# Routes are sourced from the GTLNAV control plane:
+#
+#   GET /api/proxy/route-config
+#       Authorization via x-gtlnav-proxy-secret
+#       Returns { routes: [{ hostname, upstream_kind, serve_path|upstream_target, ... }] }
+#
+# On Caddy v2.7+ this Caddyfile is a thin wrapper that polls that endpoint
+# every 30s with `gtlnav-route-config-puller` and rewrites a generated
+# `routes.conf` that this file `import`s. See infra/caddy/README.md for the
+# generator script.
+#
+# The static apex-wildcard handler is kept inline below so:
+#   *.<GTLNAV_DEPLOY_BASE_DOMAIN>     → /var/gtlnav/deployments/<slug>/current
+# continues to serve the most recent published build even if the control
+# plane is briefly unreachable.
+
+{
+  email ops@gtlnav.app
+  # Allow on-demand TLS only for hosts the control plane vouches for.
+  # See https://caddyserver.com/docs/automatic-https#on-demand-tls
+  on_demand_tls {
+    ask https://app.gtlnav.app/api/proxy/tls-ok
+    interval 2m
+    burst 5
+  }
+  servers {
+    # ACME will call back through the control plane's /api/proxy/ssl-status
+    # endpoint via the cert-status-pusher script in infra/caddy/.
+    trusted_proxies static private_ranges
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Apex wildcard — static deployments served from disk.
+# This block is what every project subdomain falls into by default. The
+# control-plane-driven `routes.conf` (below) can override per-host with a
+# Docker upstream when a docker runtime is in play.
+# -----------------------------------------------------------------------------
+*.gtlnav.app {
+  tls {
+    on_demand
+  }
+
+  @hasSlug header_regexp Host ^(?P<slug>[a-z0-9]([-a-z0-9]*[a-z0-9])?)\.gtlnav\.app$
+  handle @hasSlug {
+    root * /var/gtlnav/deployments/{re.Host.slug}/current
+    file_server
+    try_files {path} {path}/ /index.html
+    encode zstd gzip
+
+    @html path *.html /
+    header @html Cache-Control "no-cache, must-revalidate"
+    @hashed path_regexp \.[a-f0-9]{8,}\.(js|css|svg|png|jpg|jpeg|webp|woff2)$
+    header @hashed Cache-Control "public, max-age=31536000, immutable"
+  }
+  handle {
+    respond "GTLNAV: project not found" 404
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Dynamic route overrides.
+# Run `bash infra/caddy/refresh-routes.sh` (provided in infra/caddy/) to
+# regenerate this file from /api/proxy/route-config. The script writes
+# explicit site blocks for:
+#   - docker upstreams  →  reverse_proxy 127.0.0.1:<port>
+#   - verified custom domains → either file_server or reverse_proxy
+# and reloads Caddy with `caddy reload --config /etc/caddy/Caddyfile`.
+# -----------------------------------------------------------------------------
+import /etc/caddy/routes.conf

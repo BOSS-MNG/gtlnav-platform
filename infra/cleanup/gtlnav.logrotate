@@ -1,0 +1,29 @@
+# GTLNAV — logrotate config.
+#
+# Install with:
+#   sudo cp infra/cleanup/gtlnav.logrotate /etc/logrotate.d/gtlnav
+#
+# Validate before relying on it:
+#   sudo logrotate -d /etc/logrotate.d/gtlnav      # dry-run
+#   sudo logrotate -f /etc/logrotate.d/gtlnav      # force rotation now
+#
+# This file rotates only logs that GTLNAV writes to /var/log/gtlnav/.
+# Caddy + Docker have their own log lifecycles managed by journald and the
+# Docker daemon's `log-opts` — set those separately if you want size caps.
+
+/var/log/gtlnav/*.log {
+    daily
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+    create 0640 gtlnav gtlnav
+    sharedscripts
+    postrotate
+        # Nothing to reload — the worker uses journald by default.
+        # If you ever switch to file-based logging, send SIGHUP here.
+        :
+    endscript
+}

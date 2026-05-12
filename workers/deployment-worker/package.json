@@ -1,0 +1,22 @@
+{
+  "name": "@gtlnav/deployment-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GTLNAV deployment worker — claims jobs from the control plane, clones the repo, builds it, and publishes the static output to the proxy root.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "gtlnav-deploy-worker": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "start:once": "GTLNAV_WORKER_RUN_ONCE=1 node src/index.js",
+    "lint": "node --check src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "16.4.5"
+  }
+}

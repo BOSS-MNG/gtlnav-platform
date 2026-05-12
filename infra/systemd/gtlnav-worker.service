@@ -1,0 +1,59 @@
+[Unit]
+Description=GTLNAV deployment worker (Phase 6D)
+Documentation=https://github.com/godtechlabs/gtlnav-platform
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+# Worker depends on the control plane being reachable AND on Docker being
+# available when GTLNAV_WORKER_DOCKER_ENABLED=true. We don't fail-hard if
+# docker.service is masked — the worker degrades to static-only honestly.
+
+[Service]
+Type=simple
+User=gtlnav
+Group=gtlnav
+WorkingDirectory=/opt/gtlnav/workers/deployment-worker
+
+# Environment is loaded from a single sealed file. Keep secrets out of unit
+# files so `systemctl cat` is safe to share with collaborators.
+EnvironmentFile=/etc/gtlnav/worker.env
+
+# Node 20+ runtime. Update the path if you use a non-system Node.
+ExecStart=/usr/bin/node /opt/gtlnav/workers/deployment-worker/src/index.js
+
+# Restart policy — exit-clean restarts (10s); exit-fail back off (30s) so a
+# broken release doesn't hammer the control plane.
+Restart=always
+RestartSec=10s
+StartLimitIntervalSec=120
+StartLimitBurst=4
+
+# Logging — journal captures stdout+stderr; rotate via journald.conf or use
+# the logrotate config in infra/cleanup/gtlnav.logrotate when streaming to
+# /var/log/gtlnav/worker.log instead.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gtlnav-worker
+
+# -----------------------------------------------------------------------------
+# Hardening — defense-in-depth on top of the worker's own command allowlists.
+# -----------------------------------------------------------------------------
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# DEPLOYMENTS_ROOT must remain writable. Add /var/log/gtlnav for any logs the
+# worker writes to disk directly (currently it only uses journald, but keep
+# the path declared so a future change doesn't fail silently).
+ReadWritePaths=/var/gtlnav/deployments /var/log/gtlnav /opt/gtlnav
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=false
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+# Allow git clone, npm/pnpm/yarn install, and `docker` CLI calls.
+# docker daemon runs as root elsewhere — the CLI just talks to the socket.
+
+[Install]
+WantedBy=multi-user.target

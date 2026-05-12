@@ -1,0 +1,15 @@
+[Unit]
+Description=GTLNAV — pull /api/proxy/route-config every 30s
+Documentation=file:///opt/gtlnav/infra/caddy/README.md
+
+[Timer]
+# Boot delay: wait 30s after multi-user.target so caddy.service is alive.
+OnBootSec=30s
+# Recurring: every 30 seconds — short enough that a new deploy is routable
+# within one timer tick, long enough that the control plane isn't hammered.
+OnUnitActiveSec=30s
+Unit=gtlnav-routes-refresh.service
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
