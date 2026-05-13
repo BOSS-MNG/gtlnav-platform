@@ -93,7 +93,7 @@ export function Hero() {
 
       <h2 className="mt-6 text-2xl font-medium tracking-tight text-white/90 md:text-4xl">
         <span className="bg-gradient-to-r from-basil-200 via-white to-basil-200 bg-clip-text text-transparent">
-          Navigate The Future Infrastructure
+          Navigate The Future Infrastructure 🚀
         </span>
       </h2>
 
