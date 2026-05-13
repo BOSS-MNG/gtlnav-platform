@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "GTLNAV — Navigate The Future Infrastructure",
+    title: "GTLNAV — Navigate The Future Infrastructure 🚀",
     description:
       "Cloud hosting, deployment, domains and infrastructure inside the GODTECHLABS ecosystem.",
     type: "website",
