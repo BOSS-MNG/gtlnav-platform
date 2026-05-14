@@ -567,7 +567,6 @@ export function DashboardClient() {
 
       <CreateProjectModal
         open={createOpen}
-        userId={userId}
         onClose={() => setCreateOpen(false)}
         onCreated={() => void refresh(userId, "refresh")}
       />

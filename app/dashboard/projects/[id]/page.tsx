@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ProjectDetailClient } from "@/src/components/project-detail/project-detail-client";
+import { ProjectHostingFoundationClient } from "@/src/components/project-detail/project-hosting-foundation-client";
 
 export const metadata: Metadata = {
   title: "Project · GTLNAV",
@@ -13,5 +13,5 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ProjectDetailClient projectId={id} />;
+  return <ProjectHostingFoundationClient projectId={id} />;
 }

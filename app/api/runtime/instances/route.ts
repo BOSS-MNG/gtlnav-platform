@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { authenticateRequest } from "@/src/lib/server-auth";
+import { isMissingColumn } from "@/src/lib/server-deployments";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   let query = auth.client
     .from("runtime_instances")
     .select(
-      "id, user_id, project_id, deployment_id, runtime_kind, target_state, status, internal_port, container_id, container_name, image_tag, dockerfile_source, last_health_status, last_health_check, last_action, last_action_at, restart_count, exit_code, exit_reason, framework, serve_path, created_at, updated_at",
+      "id, user_id, project_id, deployment_id, runtime_kind, target_state, status, runtime_status, internal_port, external_port, container_id, container_name, image_tag, docker_image, dockerfile_source, last_health_status, health_status, last_health_check, last_action, last_action_at, restart_count, exit_code, exit_reason, framework, serve_path, created_at, updated_at",
     )
     .eq("user_id", auth.userId)
     .order("updated_at", { ascending: false })
@@ -43,7 +44,30 @@ export async function GET(request: NextRequest) {
     query = query.eq("project_id", projectId);
   }
 
-  const { data, error } = await query;
+  let data: Record<string, unknown>[] | null = null;
+  let error: { message?: string } | null = null;
+
+  const initial = await query;
+  data = (initial.data ?? null) as Record<string, unknown>[] | null;
+  error = initial.error ? { message: initial.error.message } : null;
+  if (error && isMissingColumn(error.message)) {
+    let fallback = auth.client
+      .from("runtime_instances")
+      .select(
+        "id, user_id, project_id, deployment_id, runtime_kind, target_state, status, internal_port, container_id, container_name, image_tag, dockerfile_source, last_health_status, last_health_check, last_action, last_action_at, restart_count, exit_code, exit_reason, framework, serve_path, created_at, updated_at",
+      )
+      .eq("user_id", auth.userId)
+      .order("updated_at", { ascending: false })
+      .limit(200);
+
+    if (projectId) {
+      fallback = fallback.eq("project_id", projectId);
+    }
+    const retry = await fallback;
+    data = (retry.data ?? null) as Record<string, unknown>[] | null;
+    error = retry.error ? { message: retry.error.message } : null;
+  }
+
   if (error) {
     const message = error.message ?? "";
     if (

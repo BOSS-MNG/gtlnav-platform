@@ -108,6 +108,24 @@ status from the worker.
 5. **Deploy something** — sign in, create a project, click Deploy.
    `https://<slug>.<apex>` will be live a couple of minutes later.
 
+## VPS webhook hardening
+
+If you also run a direct GitHub -> VPS -> PM2 deployment path for the
+marketing site or control plane, use the hardened bundle in
+[`infra/production/`](infra/production/):
+
+- [`infra/production/deploy-webhook-server.mjs`](infra/production/deploy-webhook-server.mjs)
+  — requires `X-Hub-Signature-256`, verifies with `timingSafeEqual`, only
+  accepts `GODTECHLABS/gtlnav-platform` on `refs/heads/main`
+- [`infra/production/deploy.sh`](infra/production/deploy.sh)
+  — `set -Eeuo pipefail`, lock file, staging build, PM2 reload, graceful rollback
+- [`infra/production/README.md`](infra/production/README.md)
+  — explains the current temporary public `:9000` mode and the future nginx
+  reverse-proxy-to-loopback mode
+
+This bundle is additive: it does not change the Next.js app, nginx, Caddy, or
+current production routing until you install it on the VPS.
+
 ## Important environment variables
 
 | Name | Where it's read | Purpose |

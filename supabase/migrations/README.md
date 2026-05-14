@@ -15,6 +15,7 @@ minimum schema required for Phase 6A (real deployment engine) to operate.
 | 0006 | `0006_runtime_instances.sql` | Static / docker runtime tracking |
 | 0007 | `0007_docker_runtime.sql` | Docker columns on `runtime_instances` + `proxy_routes` table + `projects.runtime_kind` |
 | 0008 | `0008_runtime_instance_framework.sql` | Adds `runtime_instances.framework` column (Phase 6C schema alignment) |
+| 0009 | `0009_phase5_hosting_foundation.sql` | Phase 5 hosting aliases/fields + `deployment_logs` foundation |
 
 ## How to apply
 
